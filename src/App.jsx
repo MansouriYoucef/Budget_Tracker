@@ -55,7 +55,7 @@ function App() {
     <main className="app">
       <header className="app-header">
         <h1>Budget Tracker</h1>
-        <p>Ajoute et gère tes revenus et dépenses.</p>
+        <p>Version MVP prête à être partagée.</p>
       </header>
 
       <section className="summary" aria-label="Résumé du budget">
