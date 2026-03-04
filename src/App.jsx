@@ -95,7 +95,7 @@ function App() {
       </section>
 
       <section className="panel" aria-label="Ajouter une transaction">
-        <h2>Nouvelle transaction</h2>
+        <h2>Nouvelle transaction rapide</h2>
 
         <form className="transaction-form" onSubmit={handleSubmit}>
           <input
