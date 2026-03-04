@@ -21,6 +21,8 @@ function App() {
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
   const [type, setType] = useState('expense')
+  const [filter, setFilter] = useState('all')
+  const [formError, setFormError] = useState('')
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions))
@@ -44,12 +46,26 @@ function App() {
 
   const balance = income - expense
 
+  const filteredTransactions = useMemo(() => {
+    if (filter === 'all') {
+      return transactions
+    }
+
+    return transactions.filter((transaction) => transaction.type === filter)
+  }, [filter, transactions])
+
   const handleSubmit = (event) => {
     event.preventDefault()
 
     const numericAmount = Number(amount)
 
-    if (!title.trim() || Number.isNaN(numericAmount) || numericAmount <= 0) {
+    if (!title.trim()) {
+      setFormError('Le libellé est obligatoire.')
+      return
+    }
+
+    if (Number.isNaN(numericAmount) || numericAmount <= 0) {
+      setFormError('Le montant doit être supérieur à 0.')
       return
     }
 
@@ -64,10 +80,26 @@ function App() {
     setTitle('')
     setAmount('')
     setType('expense')
+    setFormError('')
   }
 
   const handleDelete = (id) => {
     setTransactions((prev) => prev.filter((transaction) => transaction.id !== id))
+  }
+
+  const handleClearAll = () => {
+    if (transactions.length === 0) {
+      return
+    }
+
+    const shouldClear = window.confirm('Supprimer toutes les transactions ?')
+
+    if (!shouldClear) {
+      return
+    }
+
+    setTransactions([])
+    setFilter('all')
   }
 
   return (
@@ -102,7 +134,10 @@ function App() {
             type="text"
             placeholder="Libellé (ex: Courses)"
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={(event) => {
+              setTitle(event.target.value)
+              setFormError('')
+            }}
           />
 
           <input
@@ -111,7 +146,10 @@ function App() {
             step="0.01"
             placeholder="Montant"
             value={amount}
-            onChange={(event) => setAmount(event.target.value)}
+            onChange={(event) => {
+              setAmount(event.target.value)
+              setFormError('')
+            }}
           />
 
           <select value={type} onChange={(event) => setType(event.target.value)}>
@@ -121,16 +159,49 @@ function App() {
 
           <button type="submit">Ajouter</button>
         </form>
+
+        {formError && <p className="form-error">{formError}</p>}
       </section>
 
       <section className="panel" aria-label="Liste des transactions">
-        <h2>Transactions</h2>
+        <div className="transactions-header-row">
+          <div className="transactions-title-group">
+            <h2>Transactions</h2>
+            <button type="button" className="clear-button" onClick={handleClearAll}>
+              Réinitialiser tout
+            </button>
+          </div>
 
-        {transactions.length === 0 ? (
-          <p className="empty-state">Aucune transaction pour le moment.</p>
+          <div className="filter-group" role="group" aria-label="Filtrer les transactions">
+            <button
+              type="button"
+              className={filter === 'all' ? 'filter-button active' : 'filter-button'}
+              onClick={() => setFilter('all')}
+            >
+              Toutes
+            </button>
+            <button
+              type="button"
+              className={filter === 'income' ? 'filter-button active' : 'filter-button'}
+              onClick={() => setFilter('income')}
+            >
+              Revenus
+            </button>
+            <button
+              type="button"
+              className={filter === 'expense' ? 'filter-button active' : 'filter-button'}
+              onClick={() => setFilter('expense')}
+            >
+              Dépenses
+            </button>
+          </div>
+        </div>
+
+        {filteredTransactions.length === 0 ? (
+          <p className="empty-state">Aucune transaction pour ce filtre.</p>
         ) : (
           <ul className="transactions-list">
-            {transactions.map((transaction) => (
+            {filteredTransactions.map((transaction) => (
               <li key={transaction.id} className="transaction-item">
                 <div>
                   <p className="transaction-title">{transaction.title}</p>
