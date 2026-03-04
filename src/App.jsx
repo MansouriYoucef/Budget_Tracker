@@ -1,11 +1,30 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
+const STORAGE_KEY = 'budget_tracker_transactions'
+
 function App() {
-  const [transactions, setTransactions] = useState([])
+  const [transactions, setTransactions] = useState(() => {
+    try {
+      const storedTransactions = localStorage.getItem(STORAGE_KEY)
+
+      if (!storedTransactions) {
+        return []
+      }
+
+      const parsedTransactions = JSON.parse(storedTransactions)
+      return Array.isArray(parsedTransactions) ? parsedTransactions : []
+    } catch {
+      return []
+    }
+  })
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
   const [type, setType] = useState('expense')
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions))
+  }, [transactions])
 
   const income = useMemo(
     () =>
@@ -55,7 +74,7 @@ function App() {
     <main className="app">
       <header className="app-header">
         <h1>Budget Tracker</h1>
-        <p>Ajoute et gère tes revenus et dépenses.</p>
+        <p>Version MVP prête à être partagée.</p>
       </header>
 
       <section className="summary" aria-label="Résumé du budget">
