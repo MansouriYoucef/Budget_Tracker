@@ -1,34 +1,46 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const transactions = []
+
+  const income = transactions
+    .filter((transaction) => transaction.type === 'income')
+    .reduce((sum, transaction) => sum + transaction.amount, 0)
+
+  const expense = transactions
+    .filter((transaction) => transaction.type === 'expense')
+    .reduce((sum, transaction) => sum + transaction.amount, 0)
+
+  const balance = income - expense
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <main className="app">
+      <header className="app-header">
+        <h1>Budget Tracker</h1>
+        <p>Étape 1: structure de base prête</p>
+      </header>
+
+      <section className="summary" aria-label="Résumé du budget">
+        <div className="summary-card">
+          <h2>Revenus</h2>
+          <p>{income.toFixed(2)} €</p>
+        </div>
+
+        <div className="summary-card">
+          <h2>Dépenses</h2>
+          <p>{expense.toFixed(2)} €</p>
+        </div>
+
+        <div className="summary-card">
+          <h2>Solde</h2>
+          <p>{balance.toFixed(2)} €</p>
+        </div>
+      </section>
+
+      <section className="placeholder" aria-label="Zone de travail">
+        <p>Prochaine étape: ajouter le formulaire de transaction.</p>
+      </section>
+    </main>
   )
 }
 
