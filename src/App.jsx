@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import Balance from './components/Balance'
+import TransactionForm from './components/TransactionForm'
+import TransactionList from './components/TransactionList'
 
 const STORAGE_KEY = 'budget_tracker_transactions'
+const getToday = () => new Date().toISOString().split('T')[0]
 
 function App() {
   const [transactions, setTransactions] = useState(() => {
@@ -21,6 +25,7 @@ function App() {
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
   const [type, setType] = useState('expense')
+  const [date, setDate] = useState(getToday)
   const [filter, setFilter] = useState('all')
   const [formError, setFormError] = useState('')
 
@@ -69,17 +74,24 @@ function App() {
       return
     }
 
+    if (!date) {
+      setFormError('La date est obligatoire.')
+      return
+    }
+
     const newTransaction = {
       id: crypto.randomUUID(),
       title: title.trim(),
       amount: numericAmount,
       type,
+      date,
     }
 
     setTransactions((prev) => [newTransaction, ...prev])
     setTitle('')
     setAmount('')
     setType('expense')
+    setDate(getToday())
     setFormError('')
   }
 
@@ -109,121 +121,37 @@ function App() {
         <p>Version MVP prête à être partagée.</p>
       </header>
 
-      <section className="summary" aria-label="Résumé du budget">
-        <div className="summary-card">
-          <h2>Revenus</h2>
-          <p>{income.toFixed(2)} €</p>
-        </div>
+      <Balance income={income} expense={expense} balance={balance} />
 
-        <div className="summary-card">
-          <h2>Dépenses</h2>
-          <p>{expense.toFixed(2)} €</p>
-        </div>
+      <TransactionForm
+        title={title}
+        amount={amount}
+        type={type}
+        date={date}
+        formError={formError}
+        onChangeTitle={(value) => {
+          setTitle(value)
+          setFormError('')
+        }}
+        onChangeAmount={(value) => {
+          setAmount(value)
+          setFormError('')
+        }}
+        onChangeType={setType}
+        onChangeDate={(value) => {
+          setDate(value)
+          setFormError('')
+        }}
+        onSubmit={handleSubmit}
+      />
 
-        <div className="summary-card">
-          <h2>Solde</h2>
-          <p className={balance >= 0 ? 'positive' : 'negative'}>{balance.toFixed(2)} €</p>
-        </div>
-      </section>
-
-      <section className="panel" aria-label="Ajouter une transaction">
-        <h2>Nouvelle transaction rapide</h2>
-
-        <form className="transaction-form" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            placeholder="Libellé (ex: Courses)"
-            value={title}
-            onChange={(event) => {
-              setTitle(event.target.value)
-              setFormError('')
-            }}
-          />
-
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="Montant"
-            value={amount}
-            onChange={(event) => {
-              setAmount(event.target.value)
-              setFormError('')
-            }}
-          />
-
-          <select value={type} onChange={(event) => setType(event.target.value)}>
-            <option value="expense">Dépense</option>
-            <option value="income">Revenu</option>
-          </select>
-
-          <button type="submit">Ajouter</button>
-        </form>
-
-        {formError && <p className="form-error">{formError}</p>}
-      </section>
-
-      <section className="panel" aria-label="Liste des transactions">
-        <div className="transactions-header-row">
-          <div className="transactions-title-group">
-            <h2>Transactions</h2>
-            <button type="button" className="clear-button" onClick={handleClearAll}>
-              Réinitialiser tout
-            </button>
-          </div>
-
-          <div className="filter-group" role="group" aria-label="Filtrer les transactions">
-            <button
-              type="button"
-              className={filter === 'all' ? 'filter-button active' : 'filter-button'}
-              onClick={() => setFilter('all')}
-            >
-              Toutes
-            </button>
-            <button
-              type="button"
-              className={filter === 'income' ? 'filter-button active' : 'filter-button'}
-              onClick={() => setFilter('income')}
-            >
-              Revenus
-            </button>
-            <button
-              type="button"
-              className={filter === 'expense' ? 'filter-button active' : 'filter-button'}
-              onClick={() => setFilter('expense')}
-            >
-              Dépenses
-            </button>
-          </div>
-        </div>
-
-        {filteredTransactions.length === 0 ? (
-          <p className="empty-state">Aucune transaction pour ce filtre.</p>
-        ) : (
-          <ul className="transactions-list">
-            {filteredTransactions.map((transaction) => (
-              <li key={transaction.id} className="transaction-item">
-                <div>
-                  <p className="transaction-title">{transaction.title}</p>
-                  <p className="transaction-type">
-                    {transaction.type === 'income' ? 'Revenu' : 'Dépense'}
-                  </p>
-                </div>
-
-                <div className="transaction-right">
-                  <p className={transaction.type === 'income' ? 'positive' : 'negative'}>
-                    {transaction.type === 'income' ? '+' : '-'}
-                    {transaction.amount.toFixed(2)} €
-                  </p>
-                  <button type="button" onClick={() => handleDelete(transaction.id)}>
-                    Supprimer
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <TransactionList
+        filter={filter}
+        onChangeFilter={setFilter}
+        transactions={filteredTransactions}
+        onDelete={handleDelete}
+        onClearAll={handleClearAll}
+      />
     </main>
   )
 }
