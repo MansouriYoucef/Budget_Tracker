@@ -1,11 +1,37 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import Balance from './components/Balance'
+import TransactionForm from './components/TransactionForm'
+import TransactionList from './components/TransactionList'
+
+const STORAGE_KEY = 'budget_tracker_transactions'
+const getToday = () => new Date().toISOString().split('T')[0]
 
 function App() {
-  const [transactions, setTransactions] = useState([])
+  const [transactions, setTransactions] = useState(() => {
+    try {
+      const storedTransactions = localStorage.getItem(STORAGE_KEY)
+
+      if (!storedTransactions) {
+        return []
+      }
+
+      const parsedTransactions = JSON.parse(storedTransactions)
+      return Array.isArray(parsedTransactions) ? parsedTransactions : []
+    } catch {
+      return []
+    }
+  })
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
   const [type, setType] = useState('expense')
+  const [date, setDate] = useState(getToday)
+  const [filter, setFilter] = useState('all')
+  const [formError, setFormError] = useState('')
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions))
+  }, [transactions])
 
   const income = useMemo(
     () =>
@@ -25,12 +51,31 @@ function App() {
 
   const balance = income - expense
 
+  const filteredTransactions = useMemo(() => {
+    if (filter === 'all') {
+      return transactions
+    }
+
+    return transactions.filter((transaction) => transaction.type === filter)
+  }, [filter, transactions])
+
   const handleSubmit = (event) => {
     event.preventDefault()
 
     const numericAmount = Number(amount)
 
-    if (!title.trim() || Number.isNaN(numericAmount) || numericAmount <= 0) {
+    if (!title.trim()) {
+      setFormError('Le libellé est obligatoire.')
+      return
+    }
+
+    if (Number.isNaN(numericAmount) || numericAmount <= 0) {
+      setFormError('Le montant doit être supérieur à 0.')
+      return
+    }
+
+    if (!date) {
+      setFormError('La date est obligatoire.')
       return
     }
 
@@ -39,16 +84,34 @@ function App() {
       title: title.trim(),
       amount: numericAmount,
       type,
+      date,
     }
 
     setTransactions((prev) => [newTransaction, ...prev])
     setTitle('')
     setAmount('')
     setType('expense')
+    setDate(getToday())
+    setFormError('')
   }
 
   const handleDelete = (id) => {
     setTransactions((prev) => prev.filter((transaction) => transaction.id !== id))
+  }
+
+  const handleClearAll = () => {
+    if (transactions.length === 0) {
+      return
+    }
+
+    const shouldClear = window.confirm('Supprimer toutes les transactions ?')
+
+    if (!shouldClear) {
+      return
+    }
+
+    setTransactions([])
+    setFilter('all')
   }
 
   return (
@@ -58,82 +121,37 @@ function App() {
         <p>Version MVP prête à être partagée.</p>
       </header>
 
-      <section className="summary" aria-label="Résumé du budget">
-        <div className="summary-card">
-          <h2>Revenus</h2>
-          <p>{income.toFixed(2)} €</p>
-        </div>
+      <Balance income={income} expense={expense} balance={balance} />
 
-        <div className="summary-card">
-          <h2>Dépenses</h2>
-          <p>{expense.toFixed(2)} €</p>
-        </div>
+      <TransactionForm
+        title={title}
+        amount={amount}
+        type={type}
+        date={date}
+        formError={formError}
+        onChangeTitle={(value) => {
+          setTitle(value)
+          setFormError('')
+        }}
+        onChangeAmount={(value) => {
+          setAmount(value)
+          setFormError('')
+        }}
+        onChangeType={setType}
+        onChangeDate={(value) => {
+          setDate(value)
+          setFormError('')
+        }}
+        onSubmit={handleSubmit}
+      />
 
-        <div className="summary-card">
-          <h2>Solde</h2>
-          <p className={balance >= 0 ? 'positive' : 'negative'}>{balance.toFixed(2)} €</p>
-        </div>
-      </section>
-
-      <section className="panel" aria-label="Ajouter une transaction">
-        <h2>Nouvelle transaction</h2>
-
-        <form className="transaction-form" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            placeholder="Libellé (ex: Courses)"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-          />
-
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="Montant"
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-          />
-
-          <select value={type} onChange={(event) => setType(event.target.value)}>
-            <option value="expense">Dépense</option>
-            <option value="income">Revenu</option>
-          </select>
-
-          <button type="submit">Ajouter</button>
-        </form>
-      </section>
-
-      <section className="panel" aria-label="Liste des transactions">
-        <h2>Transactions</h2>
-
-        {transactions.length === 0 ? (
-          <p className="empty-state">Aucune transaction pour le moment.</p>
-        ) : (
-          <ul className="transactions-list">
-            {transactions.map((transaction) => (
-              <li key={transaction.id} className="transaction-item">
-                <div>
-                  <p className="transaction-title">{transaction.title}</p>
-                  <p className="transaction-type">
-                    {transaction.type === 'income' ? 'Revenu' : 'Dépense'}
-                  </p>
-                </div>
-
-                <div className="transaction-right">
-                  <p className={transaction.type === 'income' ? 'positive' : 'negative'}>
-                    {transaction.type === 'income' ? '+' : '-'}
-                    {transaction.amount.toFixed(2)} €
-                  </p>
-                  <button type="button" onClick={() => handleDelete(transaction.id)}>
-                    Supprimer
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <TransactionList
+        filter={filter}
+        onChangeFilter={setFilter}
+        transactions={filteredTransactions}
+        onDelete={handleDelete}
+        onClearAll={handleClearAll}
+      />
     </main>
   )
 }
